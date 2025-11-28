@@ -2,6 +2,57 @@ pipeline {
     agent any
     
     stages {
+         stage('Get and Extract Romulus') {
+      steps {
+        script {
+          sh """
+            ./scripts/get_romulus.sh
+          """
+          
+          sh """
+            if [ -d "romulus" ]; then
+              echo "Romulus extracted successfully"
+              find "romulus" -type f -name "*.img" -o -name "*.mtd" -o -name "*.bz2" | head -5
+            else
+              echo "Error: Build directory was not created"
+              exit 1
+            fi
+          """
+        }
+      }
+    }
+
+    stage('Start QEMU with OpenBMC') {
+      steps {
+        script {
+          sh """
+            ./scripts/start_qemu.sh
+          """
+        }
+      }
+    }
+
+    stage('Wait for BMC Startup') {
+      steps {
+        script {
+          timeout(time: 5, unit: 'MINUTES') {
+            waitUntil {
+              try {
+                sh """
+                  nc -z localhost 2222 && nc -z localhost 2443
+                """
+                return true
+              } catch (Exception e) {
+                echo "Waiting for BMC to start... (ports not ready yet)"
+                sleep 10
+                return false
+              }
+            }
+          }
+        }
+      }
+    }
+    
         stage('Start Qemu') {
             steps {
                 sh '''
