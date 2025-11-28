@@ -4,24 +4,26 @@ pipeline {
     stages {
         stage('Start Qemu') {
             steps {
-                sh '''
-                    ./start_qemu.sh > qemu_boot.log 2>&1 &
-                '''
+                script {
+                    sh '''
+                        ./start_qemu.sh > qemu_boot.log 2>&1 &
+                    '''
 
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitUntil {
-                    try {
-                        sh """
-                            nc -z localhost 2222 && nc -z localhost 2443
-                        """
-                        return true
-                    } catch (Exception e) {
-                        echo "Waiting for BMC to start... (ports not ready yet)"
-                        sleep 30
-                        return false
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitUntil {
+                            try {
+                                sh """
+                                    nc -z localhost 2222 && nc -z localhost 2443
+                                """
+                                return true
+                            } catch (Exception e) {
+                                echo "Waiting for BMC to start... (ports not ready yet)"
+                                sleep 30
+                                return false
+                            }
+                        }
                     }
                 }
-          }
             }
             post {
                 always {
