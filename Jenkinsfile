@@ -52,20 +52,6 @@ pipeline {
         }
       }
     }
-    
-        stage('Start Qemu') {
-            steps {
-                sh '''
-                    ./start_qemu.sh > qemu_boot.log 2>&1 &
-                    sleep 120
-                '''
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'qemu_openbmc_boot.log'
-                }
-            }
-        }
         
         stage('Run Autotests') {
             steps {
