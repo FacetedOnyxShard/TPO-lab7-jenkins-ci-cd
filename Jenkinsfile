@@ -37,13 +37,12 @@ pipeline {
             steps {
                 sh '''
                     pip3 install selenium requests pytest locust urllib3 
-                    python3 -m pytest test_redfish.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
+                    python3 -m pytest test_redfish.py -v > api_tests.log 2>&1
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'api_tests.log, api_test_results.xml'
-                    junit 'api_test_results.xml'
+                    archiveArtifacts artifacts: 'api_tests.log'
                 }
             }
         }
