@@ -2,26 +2,6 @@ pipeline {
     agent any
     
     stages {
-         stage('Get and Extract Romulus') {
-      steps {
-        script {
-          sh """
-            ./scripts/get_romulus.sh
-          """
-          
-          sh """
-            if [ -d "romulus" ]; then
-              echo "Romulus extracted successfully"
-              find "romulus" -type f -name "*.img" -o -name "*.mtd" -o -name "*.bz2" | head -5
-            else
-              echo "Error: Build directory was not created"
-              exit 1
-            fi
-          """
-        }
-      }
-    }
-
     stage('Start QEMU with OpenBMC') {
       steps {
         script {
