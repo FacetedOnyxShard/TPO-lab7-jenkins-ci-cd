@@ -15,20 +15,6 @@ pipeline {
     stage('Wait for BMC Startup') {
       steps {
         script {
-          timeout(time: 5, unit: 'MINUTES') {
-            waitUntil {
-              try {
-                sh """
-                  nc -z localhost 2222 && nc -z localhost 2443
-                """
-                return true
-              } catch (Exception e) {
-                echo "Waiting for BMC to start... (ports not ready yet)"
-                sleep 10
-                return false
-              }
-            }
-          }
           sh 'sleep 120'
         }
       }
