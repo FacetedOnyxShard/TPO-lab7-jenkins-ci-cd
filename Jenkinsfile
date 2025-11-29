@@ -2,23 +2,36 @@ pipeline {
     agent any
     
     stages {
-    stage('Start QEMU with OpenBMC') {
-      steps {
-        script {
-          sh """
-            ./start_qemu.sh
-          """
+        stage('Start QEMU with OpenBMC') {
+            steps {
+                script {
+                    sh """
+                        ./start_qemu.sh
+                    """
+                }
+            }
         }
-      }
-    }
 
-    stage('Wait for BMC Startup') {
-      steps {
-        script {
-          sh 'sleep 120'
+        stage('Wait for BMC Startup') {
+            steps {
+                script {
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitUntil {
+                            try {
+                                sh """
+                                    nc -z localhost 2222 && nc -z localhost 2443
+                                """
+                                return true
+                            } catch (Exception e) {
+                                echo "Waiting for BMC to start... (ports not ready yet)"
+                                sleep 60
+                                return false
+                            }
+                        }
+                    }
+                }
+            }
         }
-      }
-    }
         
         stage('Run Autotests') {
             steps {
