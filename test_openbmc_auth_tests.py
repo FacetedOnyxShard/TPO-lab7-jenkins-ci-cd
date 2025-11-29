@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 import time
 
@@ -9,8 +10,8 @@ def test_successful_auth():
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--start-maximized")
 
-    service = Service('/usr/bin/chromedriver')
-    driver = webdriver.Chrome(service=service)
+    service = Service(executable_path='/home/hikaruvi/univer/3_course/TPO/lab7_jenkins/chromedriver-linux64/chromedriver')
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     
     try:
         driver.get("https://localhost:2443")
@@ -35,8 +36,9 @@ def test_failed_auth():
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--start-maximized")
 
-    service = Service('/usr/bin/chromedriver')
-    driver = webdriver.Chrome(service=service)
+    service = Service(executable_path='/home/hikaruvi/univer/3_course/TPO/lab7_jenkins/chromedriver-linux64/chromedriver')
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
     
     try:
         driver.get("https://localhost:2443")
@@ -61,8 +63,9 @@ def test_block_user():
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--start-maximized")
 
-    service = Service('/usr/bin/chromedriver')
-    driver = webdriver.Chrome(service=service)
+    service = Service(executable_path='/home/hikaruvi/univer/3_course/TPO/lab7_jenkins/chromedriver-linux64/chromedriver')
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
 
     try:
         driver.get("https://localhost:2443")

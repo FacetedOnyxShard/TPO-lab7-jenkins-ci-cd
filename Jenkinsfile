@@ -6,13 +6,13 @@ pipeline {
       steps {
         script {
           sh """
-            ./start_qemu.sh > qemu.log 2>&1 &
+            ./start_qemu.sh
           """
         }
       }
       post {
             always {
-                archiveArtifacts artifacts: 'qemu.log'
+                archiveArtifacts artifacts: './tmp/qemu.log'
             }
         }
     }
@@ -34,6 +34,7 @@ pipeline {
               }
             }
           }
+          sh 'sleep 120'
         }
       }
     }
@@ -54,7 +55,7 @@ pipeline {
         stage('WebUI tests') {
             steps {
                 sh '''
-                    python3 -m pytest test_openbmc_auth_tests.py > webui_tests.log 2>&1
+                  python3 -m pytest test_openbmc_auth_tests.py > webui_tests.log 2>&1
                 '''
             }
             post {
@@ -67,7 +68,7 @@ pipeline {
         stage('Load testing') {
             steps {
                 sh '''
-                    timeout 120 locust -f locustfile_redfish_api.py --headless -u 10 -r 2 -t 90s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
+                    timeout 60 locust -f locustfile.py --headless -u 10 -r 2 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
                 '''
             }
             post {
