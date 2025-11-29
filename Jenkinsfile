@@ -36,7 +36,6 @@ pipeline {
         stage('Run Autotests') {
             steps {
                 sh '''
-                    pip3 install selenium requests pytest locust urllib3 
                     python3 -m pytest test_redfish.py -v > api_tests.log 2>&1
                 '''
             }
