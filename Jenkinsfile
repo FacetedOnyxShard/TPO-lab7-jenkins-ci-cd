@@ -10,11 +10,6 @@ pipeline {
           """
         }
       }
-      post {
-            always {
-                archiveArtifacts artifacts: './tmp/qemu.log'
-            }
-        }
     }
 
     stage('Wait for BMC Startup') {
