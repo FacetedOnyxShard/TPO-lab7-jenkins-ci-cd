@@ -6,10 +6,15 @@ pipeline {
       steps {
         script {
           sh """
-            ./scripts/start_qemu.sh
+            ./start_qemu.sh > qemu.log 2>&1 &
           """
         }
       }
+      post {
+            always {
+                archiveArtifacts artifacts: 'qemu.log'
+            }
+        }
     }
 
     stage('Wait for BMC Startup') {
