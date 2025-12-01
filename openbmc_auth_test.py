@@ -10,7 +10,6 @@ def test_successful_auth():
     chrome_options = Options()
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--start-maximized")
-    # chrome_options.add_argument("--headless")
 
     service = Service(executable_path=driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -34,12 +33,11 @@ def test_successful_auth():
         driver.quit()
 
 def test_failed_auth():
-    driver_path = "/home/gle6chik/Документы/learning/TESTING/Лаб4/chromedriver-linux64/chromedriver"
+    driver_path = "./chromedriver-linux64/chromedriver"
 
     chrome_options = Options()
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--start-maximized")
-    # chrome_options.add_argument("--headless")
 
     service = Service(executable_path=driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -63,12 +61,11 @@ def test_failed_auth():
         driver.quit()
 
 def test_block_user():
-    driver_path = "/home/gle6chik/Документы/learning/TESTING/Лаб4/chromedriver-linux64/chromedriver"
+    driver_path = "./chromedriver-linux64/chromedriver"
 
     chrome_options = Options()
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--start-maximized")
-    # chrome_options.add_argument("--headless")
 
     service = Service(executable_path=driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -82,8 +79,8 @@ def test_block_user():
             password = driver.find_element(By.ID, "password") 
             login_btn = driver.find_element(By.XPATH, "//button[@type='submit']")
 
-            username.send_keys("gleb")
-            password.send_keys("wrong_password_for_gleb")
+            username.send_keys("igor")
+            password.send_keys("abcdefg")
             login_btn.click()
 
             time.sleep(3)
@@ -109,7 +106,7 @@ def test_block_user():
         time.sleep(5)
 
         page_html = driver.page_source
-        assert "gleb" in page_html and "locked" in page_html.lower()
+        assert "igor" in page_html and "locked" in page_html.lower()
     
     finally:
         driver.quit()

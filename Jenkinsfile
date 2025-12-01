@@ -2,67 +2,58 @@ pipeline {
     agent any
     
     stages {
-        stage('Подготовка') {
+        stage('Preparation') {
             steps {
                 sh '''
-                    echo "Проверяем файлы..."
-                    ls -la > preparation_files.txt
-                    ls -la chromedriver-linux64/ > chromedriver_files.txt
-                    
-                    echo "Устанавливаем зависимости..."
+                    echo "Install dependencies..."
                     pip3 install selenium requests pytest locust urllib3 > dependencies.log 2>&1
                     
-                    echo "Даем права на выполнение..."
-                    chmod +x runbmc.sh
+                    echo "Give permission..."
+                    chmod +x start_qemu.sh
                     chmod +x chromedriver-linux64/chromedriver
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'preparation_files.txt, chromedriver_files.txt, dependencies.log'
+                    archiveArtifacts artifacts: 'dependencies.log'
                 }
             }
         }
         
-        stage('Запуск QEMU') {
+        stage('Start qemu') {
             steps {
                 sh '''
-                    echo "Запускаем QEMU с OpenBMC..."
-                    echo "Проверяем romulus..."
-                    ls -la /romulus/ > romulus_files.txt
-                    
-                    ./runbmc.sh > qemu_boot.log 2>&1 &
-                    echo "QEMU запущен, ждем 120 секунд..."
+                    ./start_qemu.sh > qemu_boot.log 2>&1 &
+                    echo "Waiting 120 sec..."
                     sleep 120
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'romulus_files.txt, qemu_boot.log'
+                    archiveArtifacts artifacts: 'qemu_boot.log'
                 }
             }
         }
         
-        stage('API тесты') {
+        stage('API tests') {
             steps {
                 sh '''
-                    echo "Запуск API тестов..."
-                    python3 openbmc_test.py > openbmc_test.log 2>&1
+                    echo "Start API tests..."
                     python3 -m pytest redfish_api_auth_test.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'openbmc_test.log, api_tests.log, api_test_results.xml'
+                    archiveArtifacts artifacts: 'api_tests.log, api_test_results.xml'
                     junit 'api_test_results.xml'
                 }
             }
         }
         
-        stage('WebUI тесты') {
+        stage('WebUI tests') {
             steps {
                 sh '''
-                    echo "Запуск WebUI тестов..."
+                    echo "Start WebUI tests..."
                     python3 openbmc_auth_test.py > webui_tests.log 2>&1
                 '''
             }
@@ -73,10 +64,10 @@ pipeline {
             }
         }
         
-        stage('Нагрузочное тестирование') {
+        stage('Loading testing') {
             steps {
                 sh '''
-                    echo "Запуск нагрузочного тестирования..."
+                    echo "Start loading testing..."
                     timeout 60 locust -f locustfile_redfish_api.py --headless -u 1 -r 1 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
                 '''
             }
@@ -90,11 +81,21 @@ pipeline {
     
     post {
         always {
-            sh '''
-                echo "Останавливаем QEMU..."
-                pkill -f qemu-system-arm || true
-            '''
-            archiveArtifacts artifacts: '**/*.log, **/*.txt, **/*.xml, **/*.html'
+            script {
+                def pid = sh(
+                    script: """
+                        ps aux | grep qemu | grep -v grep | awk '{print \$2}' || echo ""
+                    """,
+                    returnStdout: true
+                ).trim()
+
+                if (pid) {
+                    echo "QEMU PID found: ${pid}"
+                    sh "kill ${pid}"
+                } else {
+                    echo "No QEMU process found"
+                }
+            }
         }
     }
 }
