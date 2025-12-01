@@ -39,7 +39,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Start API tests..."
-                    python3 -m pytest redfish_api_auth_test.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
+                    python3 -m pytest redfish_api.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
                 '''
             }
             post {
@@ -54,12 +54,12 @@ pipeline {
             steps {
                 sh '''
                     echo "Start WebUI tests..."
-                    python3 openbmc_auth_test.py > webui_tests.log 2>&1
+                    python3 webui_tests.py > webui_tests_logs.txt 2>&1
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'webui_tests.log'
+                    archiveArtifacts artifacts: 'webui_tests_logs.txt'
                 }
             }
         }
@@ -68,7 +68,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Start loading testing..."
-                    timeout 60 locust -f locustfile_redfish_api.py --headless -u 1 -r 1 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
+                    timeout 60 locust -f locustfile.py --headless -u 1 -r 1 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
                 '''
             }
             post {
