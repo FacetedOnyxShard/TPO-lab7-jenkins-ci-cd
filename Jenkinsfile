@@ -33,8 +33,13 @@ pipeline {
         stage('Run Autotests') {
             steps {
                 sh '''
+<<<<<<< HEAD
                     echo "Запуск Auto-тестов..."
                     python3 -m pytest test_redfish.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
+=======
+                    echo "Start API tests..."
+                    python3 -m pytest redfish_api.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
+>>>>>>> 634deb7 (need to check)
                 '''
             }
             post {
@@ -48,12 +53,17 @@ pipeline {
         stage('WebUI tests') {
             steps {
                 sh '''
+<<<<<<< HEAD
                     python3 -m pytest test_openbmc_auth_tests.py > webui_tests.log 2>&1
+=======
+                    echo "Start WebUI tests..."
+                    python3 webui_tests.py > webui_tests_logs.txt 2>&1
+>>>>>>> 634deb7 (need to check)
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'webui_tests.log'
+                    archiveArtifacts artifacts: 'webui_tests_logs.txt'
                 }
             }
         }
@@ -61,7 +71,12 @@ pipeline {
         stage('Load testing') {
             steps {
                 sh '''
+<<<<<<< HEAD
                     timeout 120 locust -f locustfile_redfish_api.py --headless -u 10 -r 2 -t 90s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
+=======
+                    echo "Start loading testing..."
+                    timeout 60 locust -f locustfile.py --headless -u 1 -r 1 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
+>>>>>>> 634deb7 (need to check)
                 '''
             }
             post {
