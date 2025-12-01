@@ -2,54 +2,68 @@ pipeline {
     agent any
     
     stages {
-        stage('Start QEMU with OpenBMC') {
-            steps {
-                script {
-                    sh """
-                        ./start_qemu.sh
-                    """
-                }
-            }
-        }
-
-        stage('Wait for BMC Startup') {
-            steps {
-                script {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        waitUntil {
-                            try {
-                                sh """
-                                    nc -z localhost 2222 && nc -z localhost 2443
-                                """
-                                return true
-                            } catch (Exception e) {
-                                echo "Waiting for BMC to start... (ports not ready yet)"
-                                sleep 60
-                                return false
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Run Autotests') {
+        stage('Подготовка') {
             steps {
                 sh '''
-                    python3 -m pytest test_redfish.py -v > api_tests.log 2>&1
+                    echo "Проверяем файлы..."
+                    ls -la > preparation_files.txt
+                    ls -la chromedriver-linux64/ > chromedriver_files.txt
+                    
+                    echo "Устанавливаем зависимости..."
+                    pip3 install selenium requests pytest locust urllib3 > dependencies.log 2>&1
+                    
+                    echo "Даем права на выполнение..."
+                    chmod +x runbmc.sh
+                    chmod +x chromedriver-linux64/chromedriver
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'api_tests.log'
+                    archiveArtifacts artifacts: 'preparation_files.txt, chromedriver_files.txt, dependencies.log'
                 }
             }
         }
         
-        stage('WebUI tests') {
+        stage('Запуск QEMU') {
             steps {
                 sh '''
-                  python3 -m pytest test_openbmc_auth_tests.py > webui_tests.log 2>&1
+                    echo "Запускаем QEMU с OpenBMC..."
+                    echo "Проверяем romulus..."
+                    ls -la /romulus/ > romulus_files.txt
+                    
+                    ./runbmc.sh > qemu_boot.log 2>&1 &
+                    echo "QEMU запущен, ждем 120 секунд..."
+                    sleep 120
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'romulus_files.txt, qemu_boot.log'
+                }
+            }
+        }
+        
+        stage('API тесты') {
+            steps {
+                sh '''
+                    echo "Запуск API тестов..."
+                    python3 openbmc_test.py > openbmc_test.log 2>&1
+                    python3 -m pytest redfish_api_auth_test.py -v --junitxml=api_test_results.xml > api_tests.log 2>&1
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'openbmc_test.log, api_tests.log, api_test_results.xml'
+                    junit 'api_test_results.xml'
+                }
+            }
+        }
+        
+        stage('WebUI тесты') {
+            steps {
+                sh '''
+                    echo "Запуск WebUI тестов..."
+                    python3 openbmc_auth_test.py > webui_tests.log 2>&1
                 '''
             }
             post {
@@ -59,10 +73,11 @@ pipeline {
             }
         }
         
-        stage('Load testing') {
+        stage('Нагрузочное тестирование') {
             steps {
                 sh '''
-                    timeout 60 locust -f locustfile.py --headless -u 10 -r 2 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
+                    echo "Запуск нагрузочного тестирования..."
+                    timeout 60 locust -f locustfile_redfish_api.py --headless -u 1 -r 1 -t 30s --host=https://localhost:2443 --html=load_report.html > load_test.log 2>&1
                 '''
             }
             post {
@@ -75,21 +90,11 @@ pipeline {
     
     post {
         always {
-            script {
-                def pid = sh(
-                    script: """
-                        ps aux | grep qemu | grep -v grep | awk '{print \$2}' || echo ""
-                    """,
-                    returnStdout: true
-                ).trim()
-
-                if (pid) {
-                    echo "QEMU PID found: ${pid}"
-                    sh "kill ${pid}"
-                } else {
-                    echo "No QEMU process found"
-                }
-            }
+            sh '''
+                echo "Останавливаем QEMU..."
+                pkill -f qemu-system-arm || true
+            '''
+            archiveArtifacts artifacts: '**/*.log, **/*.txt, **/*.xml, **/*.html'
         }
     }
 }

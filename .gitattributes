@@ -1,4 +1,0 @@
-romulus/ filter=lfs diff=lfs merge=lfs -textt
-chromedriver-linux64/LICENSE.chromedriver filter=lfs diff=lfs merge=lfs -text
-chromedriver-linux64/THIRD_PARTY_NOTICES.chromedriver filter=lfs diff=lfs merge=lfs -text
-chromedriver-linux64/chromedriver filter=lfs diff=lfs merge=lfs -text
