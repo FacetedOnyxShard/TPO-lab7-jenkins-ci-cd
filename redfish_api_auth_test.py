@@ -1,86 +1,60 @@
 import pytest
 import requests
 
-base_url = "https://localhost:2443/redfish/v1"
-auth_data = {
-    "UserName": "root",
-    "Password": "0penBmc"
-}
+BASE_URL = "https://localhost:2443/redfish/v1"
+AUTH_DATA = {"UserName": "root", "Password": "0penBmc"}
+
+
+class RedfishClient:
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.verify = False
+        self.auth_token = None
+
+    def create_session(self):
+        url = f"{BASE_URL}/SessionService/Sessions"
+        response = self.session.post(url, json=AUTH_DATA, timeout=10)
+        response.raise_for_status()
+        self.auth_token = response.headers['X-Auth-Token']
+        return self.auth_token
+
+    def get_auth_headers(self):
+        return {'X-Auth-Token': self.auth_token}
+
+    def get(self, endpoint):
+        url = f"{BASE_URL}/{endpoint.lstrip('/')}"
+        return self.session.get(url, headers=self.get_auth_headers(), timeout=10)
+
+    def post(self, endpoint, data=None):
+        url = f"{BASE_URL}/{endpoint.lstrip('/')}"
+        headers = {**self.get_auth_headers(), 'Content-Type': 'application/json'}
+        return self.session.post(url, headers=headers, json=data, timeout=10)
+
+
+@pytest.fixture
+def redfish_client():
+    client = RedfishClient()
+    client.create_session()
+    return client
+
 
 def test_create_session():
-    url = f"{base_url}/SessionService/Sessions"
+    client = RedfishClient()
+    token = client.create_session()
+    assert token is not None
 
-    response = requests.post(
-        url,
-        json=auth_data,
-        verify=False,
-        timeout=10
-    )
 
-    assert response.ok
-    assert 'X-Auth-Token' in response.headers, "Токен сессии отсутствует в заголовках"
-
-def test_system():
-    session_url = f"{base_url}/SessionService/Sessions"
-    session_response = requests.post(
-        session_url,
-        json=auth_data,
-        verify=False,
-        timeout=10
-    )
-    
-    assert session_response.ok, "Не удалось создать сессию"
-    auth_token = session_response.headers['X-Auth-Token']
-    
-    url = f"{base_url}/Systems/system"
-    
-    headers = {
-        'X-Auth-Token': auth_token
-    }
-    
-    response = requests.get(
-        url,
-        headers=headers,
-        verify=False,
-        timeout=10
-    )
-    
-    assert response.status_code == 200, f"Ожидался код 200, получен {response.status_code}"
-    
+def test_system(redfish_client):
+    response = redfish_client.get("Systems/system")
+    assert response.status_code == 200
     data = response.json()
-    
-    assert 'Status' in data, "В ответе отсутствует поле Status"
-    assert 'PowerState' in data, "В ответе отсутствует поле PowerState"
+    assert 'Status' in data
+    assert 'PowerState' in data
 
-def test_power():
-    session_url = f"{base_url}/SessionService/Sessions"
-    session_response = requests.post(
-        session_url,
-        json=auth_data,
-        verify=False,
-        timeout=10
+
+def test_power(redfish_client):
+    response = redfish_client.post(
+        "Systems/system/Actions/ComputerSystem.Reset",
+        {"ResetType": "On"}
     )
-
-    assert session_response.ok, "Не удалось создать сессию"
-    auth_token = session_response.headers['X-Auth-Token']
-
-    reset_url = f"{base_url}/Systems/system/Actions/ComputerSystem.Reset"
-
-    reset_data = {
-        "ResetType": "On"
-    }
-    
-    headers = {
-        'X-Auth-Token': auth_token,
-        'Content-Type': 'application/json'
-    }
-
-    response = requests.post(
-        reset_url,
-        json=reset_data,
-        headers=headers,
-        verify=False,
-        timeout=10
-    )
-
-    assert response.status_code in [200, 202, 204], f"Ожидался код 200, 202 или 204, получен {response.status_code}"
+    assert response.status_code in [200, 202, 204]

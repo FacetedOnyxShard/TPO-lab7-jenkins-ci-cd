@@ -1,41 +1,63 @@
 import subprocess
 import time
 
+class IPMITestSetup:
+    def __init__(self):
+        self.host = "10.168.44.66"
+        self.port = "2623"
+        self.user = "root"
+        self.password = "0penBmc"
+        self.base_cmd = f"ipmitool -I lanplus -H {self.host} -p {self.port} -U {self.user} -P {self.password}"
+
+class IPMITestUtils:
+    def __init__(self, setup):
+        self.setup = setup
+    
+    def execute_command(self, command):
+        return subprocess.run(command, shell=True, capture_output=True, text=True)
+    
+    def power_status(self):
+        cmd = f"{self.setup.base_cmd} power status"
+        return self.execute_command(cmd)
+    
+    def power_on(self):
+        cmd = f"{self.setup.base_cmd} power on"
+        return self.execute_command(cmd)
+    
+    def power_off(self):
+        cmd = f"{self.setup.base_cmd} power off"
+        return self.execute_command(cmd)
+    
+    def fru_print(self):
+        cmd = f"{self.setup.base_cmd} fru print"
+        return self.execute_command(cmd)
+
 def test_power():
-    base_cmd = "ipmitool -I lanplus -H 10.168.44.66 -p 2623 -U root -P 0penBmc"
+    setup = IPMITestSetup()
+    utils = IPMITestUtils(setup)
     
-    power_commands = {
-        'status': f"{base_cmd} power status",
-        'on': f"{base_cmd} power on", 
-        'off': f"{base_cmd} power off"
-    }
-    
-    result = subprocess.run(power_commands['status'], shell=True, capture_output=True, text=True)
-    
-    current_status = result.stdout.lower()
+    status_result = utils.power_status()
+    current_status = status_result.stdout.lower()
     
     if 'on' in current_status:
-        result = subprocess.run(power_commands['off'], shell=True, capture_output=True, text=True)
+        off_result = utils.power_off()
         
-        if result.returncode == 0:
+        if off_result.returncode == 0:
             print("Сервер выключен")
             time.sleep(5)
             
             print("Включаем сервер...")
-            result = subprocess.run(power_commands['on'], shell=True, capture_output=True, text=True)
-            if result.returncode == 0:
+            on_result = utils.power_on()
+            if on_result.returncode == 0:
                 print("Сервер включен")
         else:
-            print(f"Ошибка выключения: {result.stderr}")
+            print(f"Ошибка выключения: {off_result.stderr}")
 
 def test_inventory():
-    result = subprocess.run(
-        "ipmitool -I lanplus -H 10.168.44.66 -p 2623 -U root -P 0penBmc fru print",
-        shell=True,
-        capture_output=True,
-        text=True
-    )
+    setup = IPMITestSetup()
+    utils = IPMITestUtils(setup)
     
-    assert result.returncode == 0, "IPMI команда не сработала"
+    fru_result = utils.fru_print()
     
-    assert len(result.stdout) > 0, "Нет данных инвентаризации"
+    assert fru_result.returncode == 0
+    assert len(fru_result.stdout) > 0

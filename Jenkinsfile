@@ -85,7 +85,6 @@ pipeline {
                 echo "Останавливаем QEMU..."
                 pkill -f qemu-system-arm || true
             '''
-            archiveArtifacts artifacts: '**/*.log, **/*.txt, **/*.xml, **/*.html'
         }
     }
 }
