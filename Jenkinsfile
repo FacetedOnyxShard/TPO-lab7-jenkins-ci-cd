@@ -81,21 +81,11 @@ pipeline {
     
     post {
         always {
-            script {
-                def pid = sh(
-                    script: """
-                        ps aux | grep qemu | grep -v grep | awk '{print \$2}' || echo ""
-                    """,
-                    returnStdout: true
-                ).trim()
-
-                if (pid) {
-                    echo "QEMU PID found: ${pid}"
-                    sh "kill ${pid}"
-                } else {
-                    echo "No QEMU process found"
-                }
-            }
+            sh '''
+                echo "Останавливаем QEMU..."
+                pkill -f qemu-system-arm || true
+            '''
+            archiveArtifacts artifacts: '**/*.log, **/*.txt, **/*.xml, **/*.html'
         }
     }
 }
